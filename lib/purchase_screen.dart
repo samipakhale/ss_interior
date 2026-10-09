@@ -317,10 +317,11 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
       ),
       body: Column(
         children: [
+          // ================= COMPACT & CLASSY PURCHASE BANNER =================
           Container(
             width: double.infinity,
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(22),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF4E342E), Color(0xFF6D4C41)],
@@ -330,9 +331,9 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: primaryBrown.withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 5),
+                  color: primaryBrown.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -351,27 +352,27 @@ class _PurchaseScreenState extends State<PurchaseScreen> {
                         letterSpacing: 1.2,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
-                      '₹${totalAmount.toStringAsFixed(2)}',
+                      '₹${totalAmount.toStringAsFixed(0)}',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(14),
+                    shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.account_balance_wallet_outlined,
                     color: Colors.white,
-                    size: 28,
+                    size: 24,
                   ),
                 ),
               ],

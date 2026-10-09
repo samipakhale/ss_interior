@@ -16,7 +16,13 @@ class _LabourScreenState extends State<LabourScreen> {
   final _dailyRateController = TextEditingController();
   final _daysController = TextEditingController();
   final _amountController = TextEditingController();
+  
   String _paymentStatus = 'Paid';
+  String _attendanceStatus = 'Present'; 
+  DateTime _selectedDate = DateTime.now(); // Date selection for daily entry
+  
+  // View mode: 0 for Labour List (Daily), 1 for Monthly Report Sheet
+  int _selectedTab = 0;
 
   // Light Luxury Color Palette
   static const Color bgLight = Color(0xFFF8F9FA);
@@ -28,9 +34,23 @@ class _LabourScreenState extends State<LabourScreen> {
 
   void _calculateTotalAmount() {
     double rate = double.tryParse(_dailyRateController.text) ?? 0.0;
-    int days = int.tryParse(_daysController.text) ?? 0;
+    double days = double.tryParse(_daysController.text) ?? 0.0;
     if (rate > 0 && days > 0) {
       _amountController.text = (rate * days).toStringAsFixed(0);
+    }
+  }
+
+  Future<void> _pickDate(BuildContext context, StateSetter setModalState) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2025),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null) {
+      setModalState(() {
+        _selectedDate = picked;
+      });
     }
   }
 
@@ -44,14 +64,25 @@ class _LabourScreenState extends State<LabourScreen> {
       _daysController.text = item['days'] ?? '';
       _amountController.text = item['amount']?.replaceAll('₹', '') ?? '';
       _paymentStatus = item['status'] ?? 'Paid';
+      _attendanceStatus = item['attendance'] ?? 'Present';
+      
+      // Parse saved date if available
+      try {
+        _selectedDate = DateTime.parse(item['date'] ?? DateTime.now().toString());
+      } catch (e) {
+        _selectedDate = DateTime.now();
+      }
     } else {
       _nameController.clear();
       _roleController.clear();
       _phoneController.clear();
       _dailyRateController.clear();
-      _daysController.clear();
+      _daysController.text = '1';
       _amountController.clear();
       _paymentStatus = 'Paid';
+      _attendanceStatus = 'Present';
+      _selectedDate = DateTime.now();
+      _calculateTotalAmount();
     }
 
     showDialog(
@@ -84,7 +115,7 @@ class _LabourScreenState extends State<LabourScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        editIndex != null ? 'Edit Labour Entry' : 'New Labour Entry',
+                        editIndex != null ? 'Edit Labour Entry' : 'Daily Attendance Entry',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -105,11 +136,180 @@ class _LabourScreenState extends State<LabourScreen> {
                       )
                     ],
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
+
+                  // DATE PICKER SELECTOR
+                  const Text(
+                    'ATTENDANCE DATE',
+                    style: TextStyle(
+                      color: textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => _pickDate(context, setModalState),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: inputBg,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.calendar_month_rounded, size: 18, color: accentBrown),
+                              const SizedBox(width: 10),
+                              Text(
+                                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                style: const TextStyle(
+                                  color: primaryDark,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Text(
+                            'Change',
+                            style: TextStyle(color: accentBrown, fontWeight: FontWeight.w800, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'ATTENDANCE STATUS',
+                    style: TextStyle(
+                      color: textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setModalState(() {
+                              _attendanceStatus = 'Present';
+                              _daysController.text = '1';
+                              _calculateTotalAmount();
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _attendanceStatus == 'Present'
+                                  ? const Color(0xFFE6F4EA)
+                                  : inputBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _attendanceStatus == 'Present'
+                                    ? const Color(0xFF137333)
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Present',
+                                style: TextStyle(
+                                  color: Color(0xFF137333),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setModalState(() {
+                              _attendanceStatus = 'Half Day';
+                              _daysController.text = '0.5';
+                              _calculateTotalAmount();
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _attendanceStatus == 'Half Day'
+                                  ? const Color(0xFFFEF7E0)
+                                  : inputBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _attendanceStatus == 'Half Day'
+                                    ? const Color(0xFFB06000)
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Half Day',
+                                style: TextStyle(
+                                  color: Color(0xFFB06000),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () {
+                            setModalState(() {
+                              _attendanceStatus = 'Absent';
+                              _daysController.text = '0';
+                              _calculateTotalAmount();
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: _attendanceStatus == 'Absent'
+                                  ? const Color(0xFFFCE8E6)
+                                  : inputBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _attendanceStatus == 'Absent'
+                                    ? const Color(0xFFC5221F)
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Absent',
+                                style: TextStyle(
+                                  color: Color(0xFFC5221F),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
 
                   _buildModernTextField(
                     controller: _nameController,
-                    label: 'Worker / Labour Name',
+                    label: 'Worker / Labour Name (e.g. Samiksha)',
                     icon: Icons.person_outline_rounded,
                   ),
                   const SizedBox(height: 12),
@@ -201,23 +401,15 @@ class _LabourScreenState extends State<LabourScreen> {
                                     : Colors.transparent,
                               ),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.check_circle_rounded,
-                                  size: 16,
-                                  color: _paymentStatus == 'Paid'
-                                      ? const Color(0xFF137333)
-                                      : textMuted,
-                                ),
-                                const SizedBox(width: 6),
+                                Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF137333)),
+                                SizedBox(width: 6),
                                 Text(
                                   'Paid',
                                   style: TextStyle(
-                                    color: _paymentStatus == 'Paid'
-                                        ? const Color(0xFF137333)
-                                        : textMuted,
+                                    color: Color(0xFF137333),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -244,23 +436,15 @@ class _LabourScreenState extends State<LabourScreen> {
                                     : Colors.transparent,
                               ),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.pending_actions_rounded,
-                                  size: 16,
-                                  color: _paymentStatus == 'Pending'
-                                      ? const Color(0xFFB06000)
-                                      : textMuted,
-                                ),
-                                const SizedBox(width: 6),
+                                Icon(Icons.pending_actions_rounded, size: 16, color: Color(0xFFB06000)),
+                                SizedBox(width: 6),
                                 Text(
                                   'Pending',
                                   style: TextStyle(
-                                    color: _paymentStatus == 'Pending'
-                                        ? const Color(0xFFB06000)
-                                        : textMuted,
+                                    color: Color(0xFFB06000),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -299,9 +483,8 @@ class _LabourScreenState extends State<LabourScreen> {
                               'days': _daysController.text,
                               'amount': _amountController.text,
                               'status': _paymentStatus,
-                              'date': editIndex != null
-                                  ? (widget.labours[editIndex]['date'] ?? 'Today')
-                                  : 'Today',
+                              'attendance': _attendanceStatus,
+                              'date': _selectedDate.toIso8601String(), // Storing ISO date string
                             };
 
                             if (editIndex != null) {
@@ -314,7 +497,7 @@ class _LabourScreenState extends State<LabourScreen> {
                         }
                       },
                       child: Text(
-                        editIndex != null ? 'UPDATE LABOUR' : 'SAVE LABOUR',
+                        editIndex != null ? 'UPDATE ENTRY' : 'SAVE ATTENDANCE',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
@@ -407,10 +590,89 @@ class _LabourScreenState extends State<LabourScreen> {
       ),
       body: Column(
         children: [
+          // Toggle Switch Tabs
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: inputBg,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedTab = 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _selectedTab == 0 ? cardLight : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: _selectedTab == 0
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Daily List',
+                          style: TextStyle(
+                            color: _selectedTab == 0 ? primaryDark : textMuted,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedTab = 1),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _selectedTab == 1 ? cardLight : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: _selectedTab == 1
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                )
+                              ]
+                            : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Monthly Report',
+                          style: TextStyle(
+                            color: _selectedTab == 1 ? primaryDark : textMuted,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // Top Summary Card
           Container(
             width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: cardLight,
               borderRadius: BorderRadius.circular(24),
@@ -494,183 +756,348 @@ class _LabourScreenState extends State<LabourScreen> {
 
           const SizedBox(height: 8),
 
+          // Content body based on selected tab
           Expanded(
-            child: widget.labours.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.engineering_outlined, size: 54, color: Colors.black12),
-                        SizedBox(height: 12),
-                        Text(
-                          'No labour records added yet',
-                          style: TextStyle(color: textMuted, fontSize: 14, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: widget.labours.length,
-                    itemBuilder: (context, index) {
-                      final item = widget.labours[index];
-                      final bool isPaid = item['status'] == 'Paid';
+            child: _selectedTab == 0 ? _buildLabourListView() : _buildMonthlyReportView(),
+          ),
+        ],
+      ),
+      floatingActionButton: _selectedTab == 0
+          ? FloatingActionButton.extended(
+              backgroundColor: primaryDark,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              onPressed: () => _openLabourForm(),
+              icon: const Icon(Icons.person_add_rounded, size: 20),
+              label: const Text(
+                'ADD ATTENDANCE',
+                style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
+              ),
+            )
+          : null,
+    );
+  }
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: cardLight,
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            )
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(22),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(22),
-                            onTap: () => _openLabourForm(editIndex: index),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+  // 1. Daily Labour List View
+  Widget _buildLabourListView() {
+    return widget.labours.isEmpty
+        ? const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.engineering_outlined, size: 54, color: Colors.black12),
+                SizedBox(height: 12),
+                Text(
+                  'No attendance records added yet',
+                  style: TextStyle(color: textMuted, fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: widget.labours.length,
+            itemBuilder: (context, index) {
+              final item = widget.labours[index];
+              final bool isPaid = item['status'] == 'Paid';
+              final String attendance = item['attendance'] ?? 'Present';
+              
+              String formattedDate = 'Today';
+              try {
+                final dt = DateTime.parse(item['date'] ?? '');
+                formattedDate = '${dt.day}/${dt.month}/${dt.year}';
+              } catch (e) {
+                formattedDate = item['date'] ?? 'Today';
+              }
+              
+              Color attBg = const Color(0xFFE6F4EA);
+              Color attColor = const Color(0xFF137333);
+              if (attendance == 'Half Day') {
+                attBg = const Color(0xFFFEF7E0);
+                attColor = const Color(0xFFB06000);
+              } else if (attendance == 'Absent') {
+                attBg = const Color(0xFFFCE8E6);
+                attColor = const Color(0xFFC5221F);
+              }
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: cardLight,
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(22),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(22),
+                    onTap: () => _openLabourForm(editIndex: index),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: const BoxDecoration(
+                                      color: inputBg,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.person_rounded,
+                                      color: accentBrown,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: const BoxDecoration(
-                                              color: inputBg,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(
-                                              Icons.person_rounded,
-                                              color: accentBrown,
-                                              size: 20,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item['name'] ?? 'Labour Name',
-                                                style: const TextStyle(
-                                                  color: primaryDark,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 15,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                '${item['role'] ?? 'Worker'}${item['phone'] != null && item['phone']!.isNotEmpty ? ' • ${item['phone']}' : ''}',
-                                                style: const TextStyle(
-                                                  color: textMuted,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
                                       Text(
-                                        '₹${item['amount']}',
+                                        item['name'] ?? 'Labour Name',
                                         style: const TextStyle(
                                           color: primaryDark,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
                                         ),
                                       ),
-                                    ],
-                                  ),
-
-                                  const SizedBox(height: 12),
-                                  Divider(color: Colors.black.withValues(alpha: 0.04), height: 1),
-                                  const SizedBox(height: 10),
-
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          if (item['dailyRate'] != null && item['dailyRate']!.isNotEmpty) ...[
-                                            Text(
-                                              '₹${item['dailyRate']}/day',
-                                              style: const TextStyle(color: textMuted, fontSize: 12),
-                                            ),
-                                            const SizedBox(width: 8),
-                                          ],
-                                          if (item['days'] != null && item['days']!.isNotEmpty)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: inputBg,
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              child: Text(
-                                                '${item['days']} days',
-                                                style: const TextStyle(
-                                                  color: accentBrown,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: isPaid
-                                              ? const Color(0xFFE6F4EA)
-                                              : const Color(0xFFFEF7E0),
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        child: Text(
-                                          item['status'] ?? 'Paid',
-                                          style: TextStyle(
-                                            color: isPaid
-                                                ? const Color(0xFF137333)
-                                                : const Color(0xFFB06000),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w800,
-                                          ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${item['role'] ?? 'Worker'} • Date: $formattedDate',
+                                        style: const TextStyle(
+                                          color: textMuted,
+                                          fontSize: 12,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                            ),
+                              Text(
+                                '₹${item['amount']}',
+                                style: const TextStyle(
+                                  color: primaryDark,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      );
-                    },
+
+                          const SizedBox(height: 12),
+                          Divider(color: Colors.black.withValues(alpha: 0.04), height: 1),
+                          const SizedBox(height: 10),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: attBg,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      attendance,
+                                      style: TextStyle(
+                                        color: attColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (item['days'] != null && item['days']!.isNotEmpty)
+                                    Text(
+                                      '(${item['days']} days)',
+                                      style: const TextStyle(
+                                        color: textMuted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
+                              ),
+
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isPaid
+                                      ? const Color(0xFFE6F4EA)
+                                      : const Color(0xFFFEF7E0),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  item['status'] ?? 'Paid',
+                                  style: TextStyle(
+                                    color: isPaid
+                                        ? const Color(0xFF137333)
+                                        : const Color(0xFFB06000),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: primaryDark,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        onPressed: () => _openLabourForm(),
-        icon: const Icon(Icons.person_add_rounded, size: 20),
-        label: const Text(
-          'ADD LABOUR',
-          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
-        ),
-      ),
-    );
+                ),
+              );
+            },
+          );
+  }
+
+  // 2. Monthly Report View (Aggregating all daily entries per labour)
+  Widget _buildMonthlyReportView() {
+    Map<String, Map<String, dynamic>> reportSummary = {};
+
+    for (var item in widget.labours) {
+      String name = item['name'] ?? 'Unknown';
+      String role = item['role'] ?? 'Worker';
+      String phone = item['phone'] ?? '';
+      double days = double.tryParse(item['days'] ?? '0') ?? 0.0;
+      double amount = double.tryParse(item['amount']?.replaceAll('₹', '') ?? '0') ?? 0.0;
+      String attendance = item['attendance'] ?? 'Present';
+
+      if (!reportSummary.containsKey(name)) {
+        reportSummary[name] = {
+          'name': name,
+          'role': role,
+          'phone': phone,
+          'totalDays': 0.0,
+          'totalAmount': 0.0,
+          'present': 0,
+          'halfDay': 0,
+          'absent': 0,
+        };
+      }
+
+      reportSummary[name]!['totalDays'] += days;
+      reportSummary[name]!['totalAmount'] += amount;
+
+      if (attendance == 'Present') {
+        reportSummary[name]!['present'] += 1;
+      } else if (attendance == 'Half Day') {
+        reportSummary[name]!['halfDay'] += 1;
+      } else if (attendance == 'Absent') {
+        reportSummary[name]!['absent'] += 1;
+      }
+    }
+
+    final summaryList = reportSummary.entries.map((e) => e.value).toList();
+
+    return summaryList.isEmpty
+        ? const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.assessment_outlined, size: 54, color: Colors.black12),
+                SizedBox(height: 12),
+                Text(
+                  'No monthly records available',
+                  style: TextStyle(color: textMuted, fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          )
+        : Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: cardLight,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.vertical,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(inputBg),
+                      dataRowMinHeight: 52,
+                      dataRowMaxHeight: 60,
+                      columnSpacing: 20,
+                      columns: const [
+                        DataColumn(
+                          label: Text('Labour Name', style: TextStyle(color: primaryDark, fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          label: Text('Role', style: TextStyle(color: primaryDark, fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          label: Text('Present', style: TextStyle(color: Color(0xFF137333), fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          label: Text('Half Day', style: TextStyle(color: Color(0xFFB06000), fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          label: Text('Absent', style: TextStyle(color: Color(0xFFC5221F), fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          label: Text('Total Days', style: TextStyle(color: accentBrown, fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                        DataColumn(
+                          label: Text('Total Amt (₹)', style: TextStyle(color: primaryDark, fontWeight: FontWeight.w800, fontSize: 12)),
+                        ),
+                      ],
+                      rows: summaryList.map((data) {
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Text(data['name'], style: const TextStyle(color: primaryDark, fontWeight: FontWeight.w700, fontSize: 13)),
+                            ),
+                            DataCell(
+                              Text(data['role'], style: const TextStyle(color: textMuted, fontSize: 12)),
+                            ),
+                            DataCell(
+                              Text('${data['present']}', style: const TextStyle(color: Color(0xFF137333), fontWeight: FontWeight.bold, fontSize: 13)),
+                            ),
+                            DataCell(
+                              Text('${data['halfDay']}', style: const TextStyle(color: Color(0xFFB06000), fontWeight: FontWeight.bold, fontSize: 13)),
+                            ),
+                            DataCell(
+                              Text('${data['absent']}', style: const TextStyle(color: Color(0xFFC5221F), fontWeight: FontWeight.bold, fontSize: 13)),
+                            ),
+                            DataCell(
+                              Text('${data['totalDays']}', style: const TextStyle(color: accentBrown, fontWeight: FontWeight.w800, fontSize: 13)),
+                            ),
+                            DataCell(
+                              Text('₹${data['totalAmount'].toStringAsFixed(0)}', style: const TextStyle(color: primaryDark, fontWeight: FontWeight.w900, fontSize: 13)),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
   }
 }

@@ -165,7 +165,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               if (_savedUsername != null) ...[
                 Center(
                   child: SizedBox(
-                    width: 280, // Saved Account Card width
+                    width: 280,
                     child: GestureDetector(
                       onTap: _quickLogin,
                       child: Container(
@@ -250,7 +250,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ] else ...[
                 Center(
                   child: SizedBox(
-                    width: 280, // Create Account Button width
+                    width: 280,
                     height: 52,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -1116,6 +1116,30 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     final laboursList = _castToListMap(widget.siteData['labours']);
     final extraNotesList = _castToListMap(widget.siteData['extraNotes']);
 
+    // Totals Calculation
+    double totalPurchaseExpense = 0.0;
+    for (var item in purchasesList) {
+      totalPurchaseExpense += double.tryParse(item['amount'] ?? item['cost'] ?? '0') ?? 0.0;
+    }
+
+    double totalTransportExpense = 0.0;
+    for (var item in transportationsList) {
+      totalTransportExpense += double.tryParse(item['amount'] ?? item['cost'] ?? '0') ?? 0.0;
+    }
+
+    double totalLabourExpense = 0.0;
+    for (var item in laboursList) {
+      totalLabourExpense += double.tryParse(item['amount'] ?? item['wage'] ?? '0') ?? 0.0;
+    }
+
+    double totalExtraExpense = 0.0;
+    for (var item in extraNotesList) {
+      totalExtraExpense += double.tryParse(item['amount'] ?? item['cost'] ?? '0') ?? 0.0;
+    }
+
+    // Grand Total Expense
+    double grandTotalExpense = totalPurchaseExpense + totalTransportExpense + totalLabourExpense + totalExtraExpense;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -1141,106 +1165,180 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.95,
+        child: Column(
           children: [
-            _buildInstagramCard(
-              title: 'Purchase',
-              icon: Icons.shopping_bag_outlined,
-              badgeCount: purchasesList.length,
-              accentColor: const Color(0xFFFF6B6B),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PurchaseScreen(purchases: purchasesList),
+            // ================= MODERN BLUE TOTAL EXPENSE BANNER =================
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4D96FF), Color(0xFF2376F8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4D96FF).withValues(alpha: 0.25),
+                    blurRadius: 15,
+                    offset: const Offset(0, 6),
                   ),
-                ).then((_) {
-                  widget.siteData['purchases'] = purchasesList;
-                  widget.onDataChanged();
-                  setState(() {});
-                });
-              },
-            ),
-            _buildInstagramCard(
-              title: 'Transport',
-              icon: Icons.local_shipping_outlined,
-              badgeCount: transportationsList.length,
-              accentColor: const Color(0xFF4D96FF),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TransportationScreen(
-                      transportations: transportationsList,
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TOTAL SITE EXPENSE',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₹ ${grandTotalExpense.toStringAsFixed(0)}',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: Colors.white,
+                      size: 24,
                     ),
                   ),
-                ).then((_) {
-                  widget.siteData['transportations'] = transportationsList;
-                  widget.onDataChanged();
-                  setState(() {});
-                });
-              },
+                ],
+              ),
             ),
-            _buildInstagramCard(
-              title: 'Labour',
-              icon: Icons.people_outline_rounded,
-              badgeCount: laboursList.length,
-              accentColor: const Color(0xFF6BCB77),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => LabourScreen(
-                      labours: laboursList,
-                    ),
+            const SizedBox(height: 20),
+
+            // ================= DASHBOARD GRID =================
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.95,
+                children: [
+                  _buildInstagramCard(
+                    title: 'Purchase',
+                    icon: Icons.shopping_bag_outlined,
+                    badgeCount: purchasesList.length,
+                    accentColor: const Color(0xFFFF6B6B),
+                    subtext: '₹ ${totalPurchaseExpense.toStringAsFixed(0)}',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PurchaseScreen(purchases: purchasesList),
+                        ),
+                      ).then((_) {
+                        widget.siteData['purchases'] = purchasesList;
+                        widget.onDataChanged();
+                        setState(() {});
+                      });
+                    },
                   ),
-                ).then((_) {
-                  widget.siteData['labours'] = laboursList;
-                  widget.onDataChanged();
-                  setState(() {});
-                });
-              },
-            ),
-            _buildInstagramCard(
-              title: 'Billing',
-              icon: Icons.receipt_long_outlined,
-              badgeCount: 0,
-              accentColor: const Color(0xFF9B51E0),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BillingScreen(
-                      siteName: widget.siteData['name'],
-                      purchases: purchasesList,
-                      transportations: transportationsList,
-                      labours: laboursList,
-                    ),
+                  _buildInstagramCard(
+                    title: 'Transport',
+                    icon: Icons.local_shipping_outlined,
+                    badgeCount: transportationsList.length,
+                    accentColor: const Color(0xFF4D96FF),
+                    subtext: '₹ ${totalTransportExpense.toStringAsFixed(0)}',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TransportationScreen(
+                            transportations: transportationsList,
+                          ),
+                        ),
+                      ).then((_) {
+                        widget.siteData['transportations'] = transportationsList;
+                        widget.onDataChanged();
+                        setState(() {});
+                      });
+                    },
                   ),
-                );
-              },
-            ),
-            _buildInstagramCard(
-              title: 'Extra Notes',
-              icon: Icons.note_add_outlined,
-              badgeCount: extraNotesList.length,
-              accentColor: const Color(0xFFFFB830),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ExtraScreen(extraNotesList: extraNotesList),
+                  _buildInstagramCard(
+                    title: 'Labour',
+                    icon: Icons.people_outline_rounded,
+                    badgeCount: laboursList.length,
+                    accentColor: const Color(0xFF6BCB77),
+                    subtext: '₹ ${totalLabourExpense.toStringAsFixed(0)}',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LabourScreen(
+                            labours: laboursList,
+                          ),
+                        ),
+                      ).then((_) {
+                        widget.siteData['labours'] = laboursList;
+                        widget.onDataChanged();
+                        setState(() {});
+                      });
+                    },
                   ),
-                ).then((_) {
-                  widget.siteData['extraNotes'] = extraNotesList;
-                  widget.onDataChanged();
-                  setState(() {});
-                });
-              },
+                  _buildInstagramCard(
+                    title: 'Billing',
+                    icon: Icons.receipt_long_outlined,
+                    badgeCount: 0,
+                    accentColor: const Color(0xFF9B51E0),
+                    subtext: '₹ ${grandTotalExpense.toStringAsFixed(0)}',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BillingScreen(
+                            siteName: widget.siteData['name'],
+                            purchases: purchasesList,
+                            transportations: transportationsList,
+                            labours: laboursList,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildInstagramCard(
+                    title: 'Extra Notes',
+                    icon: Icons.note_add_outlined,
+                    badgeCount: extraNotesList.length,
+                    accentColor: const Color(0xFFFFB830),
+                    subtext: '₹ ${totalExtraExpense.toStringAsFixed(0)}',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ExtraScreen(extraNotesList: extraNotesList),
+                        ),
+                      ).then((_) {
+                        widget.siteData['extraNotes'] = extraNotesList;
+                        widget.onDataChanged();
+                        setState(() {});
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1254,27 +1352,28 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     required int badgeCount,
     required Color accentColor,
     required VoidCallback onTap,
+    String? subtext,
   }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accentColor.withValues(alpha: 0.15), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: accentColor.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -1282,28 +1381,36 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                   clipBehavior: Clip.none,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: accentColor.withValues(alpha: 0.1),
+                        gradient: LinearGradient(
+                          colors: [
+                            accentColor.withValues(alpha: 0.15),
+                            accentColor.withValues(alpha: 0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, size: 30, color: accentColor),
+                      child: Icon(icon, size: 28, color: accentColor),
                     ),
                     if (badgeCount > 0)
                       Positioned(
-                        right: -2,
-                        top: -2,
+                        right: -4,
+                        top: -4,
                         child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF121212),
-                            shape: BoxShape.circle,
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF121212),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
                           child: Text(
                             '$badgeCount',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: 9,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -1311,15 +1418,27 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF121212),
+                    color: Color(0xFF1A1A1A),
+                    letterSpacing: 0.3,
                   ),
                 ),
+                if (subtext != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtext,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: accentColor,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
