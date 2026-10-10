@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "730068908840",
+    "project_id": "ss-interior-app",
+    "storage_bucket": "ss-interior-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:730068908840:android:61704a35a8059657cc6e1d",
+        "android_client_info": {
+          "package_name": "com.example.ss_interior"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "730068908840-pcstmnmc9om2li5f6bajutnncslq1ch2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbUicUddeHpwzY-2naEMirl5GxMi7GyOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "730068908840-pcstmnmc9om2li5f6bajutnncslq1ch2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

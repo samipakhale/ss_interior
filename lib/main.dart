@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'purchase_screen.dart';
 import 'transportation_screen.dart';
@@ -9,8 +11,15 @@ import 'labour_screen.dart';
 import 'billing_screen.dart';
 import 'extra_screen.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  
+  // Enable offline-first persistence for Firestore sync
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
   runApp(const SSInteriorApp());
 }
 
