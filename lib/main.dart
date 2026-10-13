@@ -93,7 +93,7 @@ class SSLogoWidget extends StatelessWidget {
       ),
       child: ClipOval(
         child: Image.asset(
-          'assets/logo.png',
+          'assets/images/logo.png',
           fit: BoxFit.cover,
         ),
       ),
