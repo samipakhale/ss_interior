@@ -70,6 +70,37 @@ class AuthWrapper extends StatelessWidget {
   }
 }
 
+// ================= ASSET LOGO WIDGET =================
+
+class SSLogoWidget extends StatelessWidget {
+  final double size;
+  const SSLogoWidget({super.key, this.size = 80});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: Image.asset(
+          'assets/logo.png',
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+}
+
 // ================= WELCOME SCREEN =================
 
 class WelcomeScreen extends StatelessWidget {
@@ -86,29 +117,7 @@ class WelcomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFFCB045)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.chair_rounded,
-                    size: 70,
-                    color: Color(0xFF121212),
-                  ),
-                ),
-              ),
+              const SSLogoWidget(size: 90),
               const SizedBox(height: 24),
               Text(
                 'SS INTERIOR WORK',
@@ -256,10 +265,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 10),
+              const Center(child: SSLogoWidget(size: 65)),
+              const SizedBox(height: 20),
               Text(
                 'Create Account',
+                textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 28,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF121212),
                 ),
@@ -267,9 +279,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(height: 6),
               Text(
                 'Set up your owner credentials securely in Cloud',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 28),
               _buildTextField(controller: _emailController, hintText: 'Email ID', icon: Icons.email_outlined),
               const SizedBox(height: 16),
               _buildTextField(controller: _passwordController, hintText: 'Password', icon: Icons.lock_outline, isPassword: true),
@@ -367,11 +380,14 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const SizedBox(height: 10),
+              const Center(child: SSLogoWidget(size: 65)),
               const SizedBox(height: 20),
               Text(
                 'Welcome Back',
+                textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 28,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF121212),
                 ),
@@ -379,9 +395,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 6),
               Text(
                 'Log in to sync your site data from Cloud',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
-              const SizedBox(height: 36),
+              const SizedBox(height: 28),
               _buildTextField(controller: _emailController, hintText: 'Email ID', icon: Icons.email_outlined),
               const SizedBox(height: 16),
               _buildTextField(controller: _passwordController, hintText: 'Password', icon: Icons.lock_outline, isPassword: true),
@@ -555,7 +572,7 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ACTIVE CLOUD SITES',
+                  'All SITES',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -711,7 +728,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
               ),
             ),
             const Text(
-              'Cloud Synced Dashboard',
+              'Active Site',
               style: TextStyle(color: Colors.grey, fontSize: 11),
             ),
           ],
