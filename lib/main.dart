@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'purchase_screen.dart';
 import 'transportation_screen.dart';
 import 'labour_screen.dart';
 import 'billing_screen.dart';
 import 'extra_screen.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,71 +39,44 @@ class SSInteriorApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       ),
-      home: const WelcomeScreen(),
+      home: const AuthWrapper(),
+    );
+  }
+}
+
+// ================= AUTH WRAPPER (Handles Instagram-like Session) =================
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFF121212), strokeWidth: 2),
+            ),
+          );
+        }
+        if (snapshot.hasData) {
+          return const SiteSelectionScreen();
+        }
+        return const WelcomeScreen();
+      },
     );
   }
 }
 
 // ================= WELCOME SCREEN =================
 
-class WelcomeScreen extends StatefulWidget {
+class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
-}
-
-class _WelcomeScreenState extends State<WelcomeScreen> {
-  String? _savedUsername;
-  bool _isChecking = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkSavedAccount();
-  }
-
-  Future<void> _checkSavedAccount() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bool isLoggedIn = prefs.getBool('is_logged_in') ?? false;
-
-    if (isLoggedIn && mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const SiteSelectionScreen()),
-        (route) => false,
-      );
-      return;
-    }
-
-    setState(() {
-      _savedUsername = prefs.getString('owner_username');
-      _isChecking = false;
-    });
-  }
-
-  Future<void> _quickLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_logged_in', true);
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const SiteSelectionScreen()),
-        (route) => false,
-      );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_isChecking) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF121212), strokeWidth: 2),
-        ),
-      );
-    }
-
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -115,8 +86,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(),
-              
-              // App Logo
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(
@@ -133,22 +102,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     color: Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: Image.asset(
-                    'assets/images/logo.png',
-                    height: 90,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.chair_rounded,
-                        size: 70,
-                        color: Color(0xFF121212),
-                      );
-                    },
+                  child: const Icon(
+                    Icons.chair_rounded,
+                    size: 70,
+                    color: Color(0xFF121212),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-
               Text(
                 'SS INTERIOR WORK',
                 textAlign: TextAlign.center,
@@ -168,139 +129,50 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   letterSpacing: 0.5,
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              if (_savedUsername != null) ...[
-                Center(
-                  child: SizedBox(
-                    width: 280,
-                    child: GestureDetector(
-                      onTap: _quickLogin,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFFCB045)],
-                                ),
-                              ),
-                              child: const CircleAvatar(
-                                radius: 18,
-                                backgroundColor: Colors.white,
-                                child: CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: Color(0xFF121212),
-                                  child: Icon(Icons.person, color: Colors.white, size: 18),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _savedUsername!,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: Color(0xFF121212),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Tap to continue',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-                          ],
-                        ),
+              Center(
+                child: SizedBox(
+                  width: 280,
+                  height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0095F6),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    );
-                  },
-                  child: const Text(
-                    'Switch Account / Log In',
-                    style: TextStyle(
-                      color: Color(0xFF0095F6),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                      );
+                    },
+                    child: const Text(
+                      'Create New Account',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
-              ] else ...[
-                Center(
-                  child: SizedBox(
-                    width: 280,
-                    height: 52,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0095F6),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SignUpScreen()),
-                        );
-                      },
-                      child: const Text(
-                        'Create New Account',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                },
+                child: const Text(
+                  'Already have an account? Log In',
+                  style: TextStyle(
+                    color: Color(0xFF0095F6),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                    );
-                  },
-                  child: const Text(
-                    'Already have an account? Log In',
-                    style: TextStyle(
-                      color: Color(0xFF0095F6),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ],
+              ),
               const Spacer(),
             ],
           ),
@@ -310,7 +182,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 }
 
-// ================= SIGN UP SCREEN =================
+// ================= SIGN UP SCREEN (Firebase Auth) =================
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -320,16 +192,17 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
 
   Future<void> _signUp() async {
-    String id = _idController.text.trim();
+    String email = _emailController.text.trim();
     String password = _passwordController.text;
     String confirmPassword = _confirmPasswordController.text;
 
-    if (id.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       _showMessage('Please fill all fields');
       return;
     }
@@ -339,18 +212,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('owner_username', id);
-    await prefs.setString('owner_password', password);
-    await prefs.setBool('is_logged_in', true);
+    setState(() => _isLoading = true);
 
-    if (mounted) {
-      _showMessage('Account Created Successfully!', isError: false);
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const SiteSelectionScreen()),
-        (route) => false,
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
       );
+
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const SiteSelectionScreen()),
+          (route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      _showMessage(e.message ?? 'Registration failed');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -361,27 +241,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
         content: Text(msg),
         backgroundColor: isError ? Colors.red.shade400 : Colors.green.shade600,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
   @override
-  void dispose() {
-    _idController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF121212)),
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -399,32 +266,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Set up your owner credentials',
+                'Set up your owner credentials securely in Cloud',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
               const SizedBox(height: 30),
-
-              _buildTextField(
-                controller: _idController,
-                hintText: 'Mobile Number or Email ID',
-                icon: Icons.person_outline,
-              ),
+              _buildTextField(controller: _emailController, hintText: 'Email ID', icon: Icons.email_outlined),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: _passwordController,
-                hintText: 'Set Password',
-                icon: Icons.lock_outline,
-                isPassword: true,
-              ),
+              _buildTextField(controller: _passwordController, hintText: 'Password', icon: Icons.lock_outline, isPassword: true),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: _confirmPasswordController,
-                hintText: 'Confirm Password',
-                icon: Icons.lock_reset_outlined,
-                isPassword: true,
-              ),
+              _buildTextField(controller: _confirmPasswordController, hintText: 'Confirm Password', icon: Icons.lock_reset_outlined, isPassword: true),
               const SizedBox(height: 28),
-
               SizedBox(
                 height: 52,
                 child: ElevatedButton(
@@ -432,15 +283,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     backgroundColor: const Color(0xFF0095F6),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  onPressed: _signUp,
-                  child: const Text(
-                    'Register & Continue',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
+                  onPressed: _isLoading ? null : _signUp,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Register & Continue', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -450,24 +298,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData icon,
-    bool isPassword = false,
-  }) {
+  Widget _buildTextField({required TextEditingController controller, required String hintText, required IconData icon, bool isPassword = false}) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F7),
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(14)),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
         style: const TextStyle(fontSize: 15),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
           prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -477,7 +316,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 }
 
-// ================= LOGIN SCREEN =================
+// ================= LOGIN SCREEN (Firebase Auth) =================
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -487,33 +326,19 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   Future<void> _login() async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    String? savedUsername = prefs.getString('owner_username');
-    String? savedPassword = prefs.getString('owner_password');
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
 
-    if (savedUsername == null || savedPassword == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('No account found. Please create an account first.'),
-            backgroundColor: Colors.orange.shade600,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    if (_usernameController.text.trim() == savedUsername &&
-        _passwordController.text == savedPassword) {
-      
-      await prefs.setBool('is_logged_in', true);
-
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -521,35 +346,21 @@ class _LoginScreenState extends State<LoginScreen> {
           (route) => false,
         );
       }
-    } else {
+    } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Invalid Mobile/Email or Password!'),
-            backgroundColor: Colors.red.shade400,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          SnackBar(content: Text(e.message ?? 'Login failed'), backgroundColor: Colors.red.shade400),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF121212)),
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28.0),
@@ -567,25 +378,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Log in using your Mobile Number or Email ID',
+                'Log in to sync your site data from Cloud',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
               const SizedBox(height: 36),
-
-              _buildTextField(
-                controller: _usernameController,
-                hintText: 'Mobile Number or Email ID',
-                icon: Icons.person_outline,
-              ),
+              _buildTextField(controller: _emailController, hintText: 'Email ID', icon: Icons.email_outlined),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: _passwordController,
-                hintText: 'Password',
-                icon: Icons.lock_outline,
-                isPassword: true,
-              ),
+              _buildTextField(controller: _passwordController, hintText: 'Password', icon: Icons.lock_outline, isPassword: true),
               const SizedBox(height: 28),
-
               SizedBox(
                 height: 52,
                 child: ElevatedButton(
@@ -593,36 +393,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     backgroundColor: const Color(0xFF0095F6),
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  onPressed: _login,
-                  child: const Text(
-                    'Log In',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
+                  onPressed: _isLoading ? null : _login,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Log In', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 ),
               ),
-              const SizedBox(height: 16),
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SignUpScreen()),
-                    );
-                  },
-                  child: const Text(
-                    "Don't have an account? Sign Up",
-                    style: TextStyle(
-                      color: Color(0xFF0095F6),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              )
             ],
           ),
         ),
@@ -630,24 +408,15 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hintText,
-    required IconData icon,
-    bool isPassword = false,
-  }) {
+  Widget _buildTextField({required TextEditingController controller, required String hintText, required IconData icon, bool isPassword = false}) {
     return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F7),
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFF2F4F7), borderRadius: BorderRadius.circular(14)),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
         style: const TextStyle(fontSize: 15),
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
           prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -657,132 +426,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// ================= CHANGE PASSWORD SCREEN =================
-
-class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
-
-  @override
-  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
-}
-
-class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final TextEditingController _currentPasswordController = TextEditingController();
-  final TextEditingController _newUsernameController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
-
-  Future<void> _updateCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    String currentSavedPass = prefs.getString('owner_password') ?? '';
-
-    if (_currentPasswordController.text != currentSavedPass) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Current password is incorrect!'),
-            backgroundColor: Colors.red.shade400,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-      return;
-    }
-
-    if (_newUsernameController.text.trim().isNotEmpty) {
-      await prefs.setString('owner_username', _newUsernameController.text.trim());
-    }
-
-    if (_newPasswordController.text.trim().isNotEmpty) {
-      await prefs.setString('owner_password', _newPasswordController.text.trim());
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Security credentials updated!'),
-          backgroundColor: Colors.green.shade600,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      Navigator.pop(context);
-    }
-  }
-
-  @override
-  void dispose() {
-    _currentPasswordController.dispose();
-    _newUsernameController.dispose();
-    _newPasswordController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Security',
-          style: TextStyle(color: Color(0xFF121212), fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        iconTheme: const IconThemeData(color: Color(0xFF121212)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Update Account Details',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF121212)),
-            ),
-            const SizedBox(height: 18),
-            _buildInputField(_currentPasswordController, 'Current Password', Icons.lock_clock, true),
-            const SizedBox(height: 14),
-            _buildInputField(_newUsernameController, 'New Mobile / Email (Optional)', Icons.person_outline, false),
-            const SizedBox(height: 14),
-            _buildInputField(_newPasswordController, 'New Password', Icons.lock_outline, true),
-            const SizedBox(height: 28),
-            SizedBox(
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF121212),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: _updateCredentials,
-                child: const Text('SAVE CHANGES', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputField(TextEditingController controller, String hint, IconData icon, bool isPass) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F7),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: isPass,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: Colors.grey.shade600, size: 20),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-        ),
-      ),
-    );
-  }
-}
-
-// ================= SITE SELECTION SCREEN =================
+// ================= SITE SELECTION SCREEN (Firestore Cloud Synced) =================
 
 class SiteSelectionScreen extends StatefulWidget {
   const SiteSelectionScreen({super.key});
@@ -792,86 +436,31 @@ class SiteSelectionScreen extends StatefulWidget {
 }
 
 class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
-  List<Map<String, dynamic>> _sites = [];
-  bool _isLoading = true;
   final TextEditingController _siteNameController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _loadSitesFromStorage();
+  CollectionReference get _sitesCollection {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    return FirebaseFirestore.instance.collection('users').doc(uid).collection('sites');
   }
 
-  @override
-  void dispose() {
-    _siteNameController.dispose();
-    super.dispose();
-  }
-
-  List<Map<String, String>> _parseListMap(dynamic listData) {
-    if (listData == null || listData is! List) return [];
-    return listData.map((e) {
-      if (e is Map) {
-        return e.map((key, value) => MapEntry(key.toString(), value.toString()));
-      }
-      return <String, String>{};
-    }).toList();
-  }
-
-  Future<void> _loadSitesFromStorage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? sitesData = prefs.getString('ss_interior_sites');
-      if (sitesData != null && sitesData.isNotEmpty) {
-        final List<dynamic> jsonList = json.decode(sitesData);
-        setState(() {
-          _sites = jsonList.map((e) {
-            final map = Map<String, dynamic>.from(e as Map);
-            return {
-              'name': map['name'] ?? '',
-              'purchases': _parseListMap(map['purchases']),
-              'transportations': _parseListMap(map['transportations']),
-              'labours': _parseListMap(map['labours']),
-              'extraNotes': _parseListMap(map['extraNotes']),
-            };
-          }).toList();
-          _isLoading = false;
-        });
-      } else {
-        _setDefaultSite();
-      }
-    } catch (e) {
-      _setDefaultSite();
-    }
-  }
-
-  void _setDefaultSite() {
-    setState(() {
-      _sites = [
-        {
-          'name': 'Baner Flat 302',
-          'purchases': <Map<String, String>>[],
-          'transportations': <Map<String, String>>[],
-          'labours': <Map<String, String>>[],
-          'extraNotes': <Map<String, String>>[],
-        }
-      ];
-      _isLoading = false;
+  Future<void> _addNewSite(String siteName) async {
+    if (siteName.trim().isEmpty) return;
+    await _sitesCollection.add({
+      'name': siteName.trim(),
+      'purchases': [],
+      'transportations': [],
+      'labours': [],
+      'extraNotes': [],
+      'createdAt': FieldValue.serverTimestamp(),
     });
-    _saveSitesToStorage();
   }
 
-  Future<void> _saveSitesToStorage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String jsonString = json.encode(_sites);
-    await prefs.setString('ss_interior_sites', jsonString);
+  Future<void> _deleteSite(String docId) async {
+    await _sitesCollection.doc(docId).delete();
   }
 
   Future<void> _logout() async {
-    await _saveSitesToStorage();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_logged_in', false);
-
+    await FirebaseAuth.instance.signOut();
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
@@ -909,47 +498,10 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () {
-              if (_siteNameController.text.trim().isNotEmpty) {
-                setState(() {
-                  _sites.add({
-                    'name': _siteNameController.text.trim(),
-                    'purchases': <Map<String, String>>[],
-                    'transportations': <Map<String, String>>[],
-                    'labours': <Map<String, String>>[],
-                    'extraNotes': <Map<String, String>>[],
-                  });
-                });
-                _saveSitesToStorage();
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('ADD SITE', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deleteSite(int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Site?'),
-        content: Text('Are you sure you want to delete "${_sites[index]['name']}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _sites.removeAt(index);
-              });
-              _saveSitesToStorage();
+              _addNewSite(_siteNameController.text);
               Navigator.pop(context);
             },
-            child: const Text('DELETE', style: TextStyle(color: Colors.red)),
+            child: const Text('ADD SITE', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -973,114 +525,106 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.shield_outlined, color: Color(0xFF121212)),
-            tooltip: 'Security',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ChangePasswordScreen()),
-              );
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.logout_rounded, color: Color(0xFF121212)),
             tooltip: 'Logout',
             onPressed: _logout,
           )
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF121212)))
-          : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ACTIVE SITES',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade600,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _sites.isEmpty
-                      ? const Expanded(
-                          child: Center(
-                            child: Text(
-                              'No active sites. Tap "+" to create one.',
-                              style: TextStyle(color: Colors.grey, fontSize: 14),
-                            ),
-                          ),
-                        )
-                      : Expanded(
-                          child: ListView.builder(
-                            itemCount: _sites.length,
-                            itemBuilder: (context, index) {
-                              final site = _sites[index];
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.02),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF121212),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 22),
-                                  ),
-                                  title: Text(
-                                    site['name'],
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  subtitle: const Text('Tap to open dashboard', style: TextStyle(fontSize: 12)),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Icons.delete_outline, color: Colors.grey.shade400, size: 22),
-                                        onPressed: () => _deleteSite(index),
-                                      ),
-                                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-                                    ],
-                                  ),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => OwnerDashboard(
-                                          siteData: site,
-                                          onDataChanged: () {
-                                            _saveSitesToStorage();
-                                            setState(() {});
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                ],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: _sitesCollection.orderBy('createdAt', descending: true).snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: Color(0xFF121212)));
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'No active sites on Cloud. Tap "+" to create one.',
+                style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
+            );
+          }
+
+          final docs = snapshot.data!.docs;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ACTIVE CLOUD SITES',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade600,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      final siteData = doc.data() as Map<String, dynamic>;
+                      final siteId = doc.id;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF121212),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.apartment_rounded, color: Colors.white, size: 22),
+                          ),
+                          title: Text(
+                            siteData['name'] ?? '',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          subtitle: const Text('Synced with Cloud Database', style: TextStyle(fontSize: 12)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.delete_outline, color: Colors.grey.shade400, size: 22),
+                                onPressed: () => _deleteSite(siteId),
+                              ),
+                              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                            ],
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OwnerDashboard(
+                                  siteId: siteId,
+                                  siteData: siteData,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF121212),
         elevation: 4,
@@ -1094,13 +638,13 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
 // ================= OWNER DASHBOARD =================
 
 class OwnerDashboard extends StatefulWidget {
+  final String siteId;
   final Map<String, dynamic> siteData;
-  final VoidCallback onDataChanged;
 
   const OwnerDashboard({
     super.key,
+    required this.siteId,
     required this.siteData,
-    required this.onDataChanged,
   });
 
   @override
@@ -1108,6 +652,24 @@ class OwnerDashboard extends StatefulWidget {
 }
 
 class _OwnerDashboardState extends State<OwnerDashboard> {
+  late Map<String, dynamic> _currentData;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentData = widget.siteData;
+  }
+
+  Future<void> _updateCloudData() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('sites')
+        .doc(widget.siteId)
+        .update(_currentData);
+  }
+
   List<Map<String, String>> _castToListMap(dynamic data) {
     if (data == null || data is! List) return [];
     return data.map((e) {
@@ -1120,33 +682,16 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final purchasesList = _castToListMap(widget.siteData['purchases']);
-    final transportationsList = _castToListMap(widget.siteData['transportations']);
-    final laboursList = _castToListMap(widget.siteData['labours']);
-    final extraNotesList = _castToListMap(widget.siteData['extraNotes']);
+    final purchasesList = _castToListMap(_currentData['purchases']);
+    final transportationsList = _castToListMap(_currentData['transportations']);
+    final laboursList = _castToListMap(_currentData['labours']);
+    final extraNotesList = _castToListMap(_currentData['extraNotes']);
 
-    // Totals Calculation
-    double totalPurchaseExpense = 0.0;
-    for (var item in purchasesList) {
-      totalPurchaseExpense += double.tryParse(item['amount'] ?? item['cost'] ?? '0') ?? 0.0;
-    }
+    double totalPurchaseExpense = purchasesList.fold(0.0, (acc, item) => acc + (double.tryParse(item['amount'] ?? '0') ?? 0.0));
+    double totalTransportExpense = transportationsList.fold(0.0, (acc, item) => acc + (double.tryParse(item['amount'] ?? '0') ?? 0.0));
+    double totalLabourExpense = laboursList.fold(0.0, (acc, item) => acc + (double.tryParse(item['amount'] ?? '0') ?? 0.0));
+    double totalExtraExpense = extraNotesList.fold(0.0, (acc, item) => acc + (double.tryParse(item['amount']?.replaceAll('₹', '') ?? '0') ?? 0.0));
 
-    double totalTransportExpense = 0.0;
-    for (var item in transportationsList) {
-      totalTransportExpense += double.tryParse(item['amount'] ?? item['cost'] ?? '0') ?? 0.0;
-    }
-
-    double totalLabourExpense = 0.0;
-    for (var item in laboursList) {
-      totalLabourExpense += double.tryParse(item['amount'] ?? item['wage'] ?? '0') ?? 0.0;
-    }
-
-    double totalExtraExpense = 0.0;
-    for (var item in extraNotesList) {
-      totalExtraExpense += double.tryParse(item['amount'] ?? item['cost'] ?? '0') ?? 0.0;
-    }
-
-    // Grand Total Expense
     double grandTotalExpense = totalPurchaseExpense + totalTransportExpense + totalLabourExpense + totalExtraExpense;
 
     return Scaffold(
@@ -1158,7 +703,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.siteData['name'],
+              _currentData['name'] ?? '',
               style: GoogleFonts.plusJakartaSans(
                 color: const Color(0xFF121212),
                 fontWeight: FontWeight.bold,
@@ -1166,7 +711,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
               ),
             ),
             const Text(
-              'Dashboard Overview',
+              'Cloud Synced Dashboard',
               style: TextStyle(color: Colors.grey, fontSize: 11),
             ),
           ],
@@ -1176,7 +721,6 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            // ================= MODERN BLUE TOTAL EXPENSE BANNER =================
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -1187,13 +731,6 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4D96FF).withValues(alpha: 0.25),
-                    blurRadius: 15,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1203,12 +740,7 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                     children: [
                       const Text(
                         'TOTAL SITE EXPENSE',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.2,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -1221,24 +753,11 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
+                  const Icon(Icons.cloud_done_rounded, color: Colors.white, size: 28),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-
-            // ================= DASHBOARD GRID =================
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -1246,106 +765,38 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.95,
                 children: [
-                  _buildInstagramCard(
-                    title: 'Purchase',
-                    icon: Icons.shopping_bag_outlined,
-                    badgeCount: purchasesList.length,
-                    accentColor: const Color(0xFFFF6B6B),
-                    subtext: '₹ ${totalPurchaseExpense.toStringAsFixed(0)}',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PurchaseScreen(purchases: purchasesList),
-                        ),
-                      ).then((_) {
-                        widget.siteData['purchases'] = purchasesList;
-                        widget.onDataChanged();
-                        setState(() {});
-                      });
-                    },
-                  ),
-                  _buildInstagramCard(
-                    title: 'Transport',
-                    icon: Icons.local_shipping_outlined,
-                    badgeCount: transportationsList.length,
-                    accentColor: const Color(0xFF4D96FF),
-                    subtext: '₹ ${totalTransportExpense.toStringAsFixed(0)}',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TransportationScreen(
-                            transportations: transportationsList,
-                          ),
-                        ),
-                      ).then((_) {
-                        widget.siteData['transportations'] = transportationsList;
-                        widget.onDataChanged();
-                        setState(() {});
-                      });
-                    },
-                  ),
-                  _buildInstagramCard(
-                    title: 'Labour',
-                    icon: Icons.people_outline_rounded,
-                    badgeCount: laboursList.length,
-                    accentColor: const Color(0xFF6BCB77),
-                    subtext: '₹ ${totalLabourExpense.toStringAsFixed(0)}',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LabourScreen(
-                            labours: laboursList,
-                          ),
-                        ),
-                      ).then((_) {
-                        widget.siteData['labours'] = laboursList;
-                        widget.onDataChanged();
-                        setState(() {});
-                      });
-                    },
-                  ),
-                  _buildInstagramCard(
-                    title: 'Billing',
-                    icon: Icons.receipt_long_outlined,
-                    badgeCount: 0,
-                    accentColor: const Color(0xFF9B51E0),
-                    subtext: '₹ ${grandTotalExpense.toStringAsFixed(0)}',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BillingScreen(
-                            siteName: widget.siteData['name'],
-                            purchases: purchasesList,
-                            transportations: transportationsList,
-                            labours: laboursList,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildInstagramCard(
-                    title: 'Extra Notes',
-                    icon: Icons.note_add_outlined,
-                    badgeCount: extraNotesList.length,
-                    accentColor: const Color(0xFFFFB830),
-                    subtext: '₹ ${totalExtraExpense.toStringAsFixed(0)}',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ExtraScreen(extraNotesList: extraNotesList),
-                        ),
-                      ).then((_) {
-                        widget.siteData['extraNotes'] = extraNotesList;
-                        widget.onDataChanged();
-                        setState(() {});
-                      });
-                    },
-                  ),
+                  _buildCard('Purchase', Icons.shopping_bag_outlined, purchasesList.length, const Color(0xFFFF6B6B), '₹ ${totalPurchaseExpense.toStringAsFixed(0)}', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => PurchaseScreen(purchases: purchasesList))).then((_) {
+                      setState(() => _currentData['purchases'] = purchasesList);
+                      _updateCloudData();
+                    });
+                  }),
+                  _buildCard('Transport', Icons.local_shipping_outlined, transportationsList.length, const Color(0xFF4D96FF), '₹ ${totalTransportExpense.toStringAsFixed(0)}', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => TransportationScreen(transportations: transportationsList))).then((_) {
+                      setState(() => _currentData['transportations'] = transportationsList);
+                      _updateCloudData();
+                    });
+                  }),
+                  _buildCard('Labour', Icons.people_outline_rounded, laboursList.length, const Color(0xFF6BCB77), '₹ ${totalLabourExpense.toStringAsFixed(0)}', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => LabourScreen(labours: laboursList))).then((_) {
+                      setState(() => _currentData['labours'] = laboursList);
+                      _updateCloudData();
+                    });
+                  }),
+                  _buildCard('Billing', Icons.receipt_long_outlined, 0, const Color(0xFF9B51E0), '₹ ${grandTotalExpense.toStringAsFixed(0)}', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => BillingScreen(
+                      siteName: _currentData['name'],
+                      purchases: purchasesList,
+                      transportations: transportationsList,
+                      labours: laboursList,
+                    )));
+                  }),
+                  _buildCard('Extra Notes', Icons.note_add_outlined, extraNotesList.length, const Color(0xFFFFB830), '₹ ${totalExtraExpense.toStringAsFixed(0)}', () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ExtraScreen(extraNotesList: extraNotesList))).then((_) {
+                      setState(() => _currentData['extraNotes'] = extraNotesList);
+                      _updateCloudData();
+                    });
+                  }),
                 ],
               ),
             ),
@@ -1355,101 +806,27 @@ class _OwnerDashboardState extends State<OwnerDashboard> {
     );
   }
 
-  Widget _buildInstagramCard({
-    required String title,
-    required IconData icon,
-    required int badgeCount,
-    required Color accentColor,
-    required VoidCallback onTap,
-    String? subtext,
-  }) {
+  Widget _buildCard(String title, IconData icon, int badgeCount, Color accentColor, String subtext, VoidCallback onTap) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: accentColor.withValues(alpha: 0.15), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: accentColor.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(24),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            accentColor.withValues(alpha: 0.15),
-                            accentColor.withValues(alpha: 0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, size: 28, color: accentColor),
-                    ),
-                    if (badgeCount > 0)
-                      Positioned(
-                        right: -4,
-                        top: -4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF121212),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: Text(
-                            '$badgeCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1A1A),
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                if (subtext != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    subtext,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: accentColor,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 28, color: accentColor),
+              const SizedBox(height: 12),
+              Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(subtext, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: accentColor)),
+            ],
           ),
         ),
       ),
